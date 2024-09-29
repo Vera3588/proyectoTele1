@@ -22,7 +22,7 @@ El proyecto consiste en diseñar un sistema de archivos distribuido por bloques,
 
 
 ### ***Requisitos no completados***
-*
+* No se implemento a nivel de cliente una interfaz de comando como los de linux, sin embargo se genero un menu interactivo e intuitivo para un usuario comun no desarrollador.
 
 *******
 
@@ -113,12 +113,12 @@ Se definieron los siguientes puertos para el uso de cada uno de los middlewares:
 
 Para ejecutar el código es necesario crear mínimo tres instancias en AWS, esto para cada una de las interfaces, Cliente, DataNode, Server. Para un buen funcionamiento seguir por favor las siguientes instrucciones:
 
-Crear tres (la cantidad deseada) instancias de EC2 con OS Ubuntu 20.04, recomendable usar el mismo grupo de seguridad para las instancias creadas para no configurar cada una manualmente. Una vez la instancia este creada, ir a los grupos de seguridad y editar las reglas de entrada, vamos a habilitar los siguientes puertos, cada uno de tipo TCP y permitiendo origen desde 0.0.0.0/0:
+Crear tres (la cantidad deseada) instancias de EC2 con OS Ubuntu 22.04, recomendable usar el mismo grupo de seguridad para las instancias creadas para no configurar cada una manualmente. Una vez la instancia este creada, ir a los grupos de seguridad y editar las reglas de entrada, vamos a habilitar los siguientes puertos, cada uno de tipo TCP y permitiendo origen desde 0.0.0.0/0:
   * 8000
   * 8001
   * 5672
 
-En mi caso, la conexión a las instancias lo hago con la aplicación PuTTY, pueden usar cualquiera que deseen que les permita interactuar con la instancia. Vamos a ejecutar los siguientes comandos:
+En nuestro caso, la conexión a las instancias lo hago con Wsl de Windows con la version de ubuntu 22.04, pueden usar cualquiera que deseen que les permita interactuar con la instancia. Vamos a ejecutar los siguientes comandos:
 
 ```ssh
 sudo apt update
@@ -159,3 +159,8 @@ Select a number to navigate through the menu.
 Una vez llegados a este punto podemos interactuar con el sistema, teniendo en cuenta que no podremos descargar archivos que no esten en el sistema y que no podremos subir archivos que no esten dentro de la ruta de files, especificada anteriormente.
 
 En las instancias tanto del servidor como de los DataNodes, podremos ver diferente informacion que va ocurriendo a medida que el usuario interactua con el sistema.
+
+*******
+
+### Link del video:
+https://youtu.be/qdn87wuCmEI
