@@ -7,7 +7,7 @@
 
 
 ### **Proyecto 1**
-El proyecto consiste en diseñar un sistema de archivos distribuido, que permita compartir y descargar de manera concurrente cualquier tipo de archivo que se encuentre almacenado en un conjunto de nodos gestionados por un servidor principal. El servidor principal lo conoceremos con NameNode, y el conjunto de nodos sobre el cual se almacenaran los distintos archivos subidos en el sistema se conoceran como DataNodes. Ademas, la red de DataNodes se comportara a su vez como una red P2P.
+El proyecto consiste en diseñar un sistema de archivos distribuido por bloques, que permita compartir y descargar de manera concurrente cualquier tipo de archivo que se encuentre almacenado en un conjunto de nodos gestionados por un servidor principal. El servidor principal lo conoceremos con NameNode, y el conjunto de nodos sobre el cual se almacenaran los distintos archivos subidos en el sistema se conoceran como DataNodes. Ademas, la red de DataNodes se comportara a su vez como una red P2P.
 
 *******
 
@@ -29,11 +29,60 @@ El proyecto consiste en diseñar un sistema de archivos distribuido, que permita
 ### ***Arquitectura***
 
 ![Arquitectura](./imgs/Arquitectura.png)
+source: https://lucid.app/lucidchart/a1a5803b-244f-41c1-8064-8a90e6d4d03b/edit?invitationId=inv_be871ee2-62d1-413c-aba7-9f20fc2eb230&page=0_0#
+
+### 1. MOM (Middleware Orientado a Mensajes)
+Este componente actúa como el intermediario entre los diferentes nodos del sistema, permitiendo la comunicación entre ellos.
+- Envía bloques: MOM se encarga de distribuir bloques de datos entre los nodos que forman parte del sistema. Estos bloques son partes del archivo que se quiere almacenar o recuperar.
+
+#### 2. Cliente
+El cliente es quien inicia las operaciones de subida y lectura de archivos. Aquí es donde comienza la interacción con el sistema.
+- Armar archivo: El cliente ensambla o prepara un archivo para su envío al sistema.
+Escritura de archivo: El archivo se divide en bloques para distribuirlos a los nodos de almacenamiento.
+- Partición de archivo: El archivo se divide en partes o "bloques" que se envían a diferentes nodos para su almacenamiento distribuido.
+- Subida de archivo: Se envían los bloques de archivo al sistema de nodos.
+- Lectura de archivo: Cuando se necesita recuperar un archivo, el cliente solicita las partes necesarias al sistema.
+
+#### 3. NameNode Leader
+Este es el nodo maestro del sistema, el que gestiona la metainformación de los archivos y dirige las operaciones de almacenamiento y lectura de los bloques.
+- Consulta: El cliente se comunica con el NameNode para obtener información sobre dónde están almacenados los bloques del archivo.
+- Gestión de partición: El NameNode envía la lista de nodos donde se encuentran los bloques del archivo. Esencialmente, le dice al cliente qué nodos contienen las partes del archivo que necesita.
+- Datos de archivos: El NameNode tiene la tabla de información que contiene la ubicación de cada bloque.
+- Registrar bloque: El NameNode también se encarga de registrar en qué DataNodes están almacenados los bloques.
+
+#### 4. DataNode
+- Los DataNodes son los nodos responsables del almacenamiento de los bloques de datos.
+Almacenar bloque: Los bloques enviados desde el cliente o desde otros nodos se almacenan aquí.
+- Enviar bloque: Cuando se solicita un archivo, los DataNodes envían los bloques correspondientes.
+- Replicar bloque: El sistema replica los bloques en diferentes DataNodes para asegurar redundancia y confiabilidad en caso de fallos.
+- Registrar bloque: Los DataNodes informan al NameNode cada vez que almacenan un bloque para que el NameNode tenga registro de su ubicación.
+
+#### 5. gRPC (gRPC Remote Procedure Call)
+- gRPC es el protocolo que se utiliza para la comunicación entre el cliente y el sistema (NameNode y DataNodes).
+- Permite que las solicitudes de operaciones (lectura, escritura, registro de bloques, etc.) se manejen de forma eficiente y distribuida a través de los diferentes nodos.
+
+### Flujo de Operación en el Sistema
+#### Subida de un archivo:
+
+- El cliente divide el archivo en bloques y utiliza MOM para enviar estos bloques a los DataNodes.
+- Antes de almacenar los bloques, el cliente consulta con el NameNode para obtener la lista de nodos disponibles.
+- Los DataNodes almacenan los bloques y registran esta acción en el NameNode.
+
+#### Lectura de un archivo:
+
+- El cliente solicita un archivo al NameNode.
+- El NameNode devuelve la ubicación de los bloques que componen el archivo (en qué DataNodes están almacenados).
+- El cliente contacta a los DataNodes para recuperar los bloques y reconstruye el archivo.
+
+### Replicación de bloques:
+
+- Para garantizar la disponibilidad, el sistema replica los bloques en múltiples DataNodes.
+- Si un DataNode falla, el archivo sigue siendo accesible desde otro nodo que tenga la réplica del bloque.
 
 *******
 
 ### **Descripción del ambiente de desarrollo y técnico***
-Este proyecto fue desarrollado en Python y se utilizaron las siguientes librerias para el desarrollo del mismo, todas las que son necesarias instalar vienen para ser instaladas dentro del archivo texto requirements.txt:
+El proyecto fue desarrollado en Python y se utilizaron las siguientes librerias para el desarrollo del mismo, todas las que son necesarias instalar vienen para ser instaladas dentro del archivo texto requirements.txt:
 
 * **threading , re , socket , random , json , configparser , os, sys**
 * **grpc version >= 1.62.0**
@@ -42,15 +91,15 @@ Este proyecto fue desarrollado en Python y se utilizaron las siguientes libreria
 
 Se tienen tres carpetas principales, Server (NameNode), DataNode, Cliente, las explicaremos en orden para entender un poco el funcionamiento de lo desarrollado.
 
-1. La carpeta Server, en este caso, el NameNode, es el encargado de gestionar las conexiones de los DataNode y de proporcionar la diferente informacion que el usuario solicite a la aplicacion. Se genera un archivo data.json en el cual se va guardando la informacion contenida en el servidor, como por ejemplo, que archivos estan en el sistema, el tamaño de cada archivo, en cuantos bloques esta dividido dicho archivo y los nodos que tienen cada uno de los bloques en los que esta dividido. El server levanta un servicio gRPC a traves del cual respondera las distintas solicitudes realizadas por el usuario, y inicia un servidor que espera las conexiones de los distintos DataNodes.
+1. Carpeta Server, aqui el NameNode, es el encargado de gestionar las conexiones de los DataNode y de proporcionar la diferente informacion que el usuario solicite a la aplicacion. Se genera un archivo data.json en el cual se va guardando la informacion contenida en el servidor, como por ejemplo, que archivos estan en el sistema, el tamaño de cada archivo, en cuantos bloques esta dividido dicho archivo y los nodos que tienen cada uno de los bloques en los que esta dividido. El server levanta un servicio gRPC a traves del cual respondera las distintas solicitudes realizadas por el usuario, y inicia un servidor que espera las conexiones de los distintos DataNodes.
 
-2. La carpeta DataNode, los DataNodes se conectan al servidor solicitando un peer al cual conectarse, si es el unico DataNode disponible, es registrado por el servidor para que cuando otro DataNode ingrese, se conecte al ya existente, esta diseñado de tal manera para que se forme una especie de cadena entre los DataNodes, donde el ultimo DataNode que llegue, se conecta al primero y al penultimo, se explica un poco mejor en la imagen a continuacion.
+2. Carpeta DataNode, los DataNodes se conectan al servidor solicitando un peer al cual conectarse, si es el unico DataNode disponible, es registrado por el servidor para que cuando otro DataNode ingrese, se conecte al ya existente, esta diseñado de tal manera para que se forme una especie de cadena entre los DataNodes, donde el ultimo DataNode que llegue, se conecta al primero y al penultimo, se explica un poco mejor en la imagen a continuacion.
 
-![DataNodes](./imgs/DataNodes.jpg)
+![DataNodes](./imgs/DataNodes.png)
 
 Los DataNodes levantan a su vez tambien dos servicios, MOM y gRPC, el servicio de MOM sera utilizado principalmente para todo el tema de transferencia de archivos, por este servicio recibe los bloques enviados por el usuario y envia los bloques en caso tal un usuario los solicite, el servicio de gRPC es utilizado principlamente para que el usuario pueda comunicarse con el DataNode para solicitarle el envio de los diferentes bloques. Adicionalmente, levantan un servidor, en este caso por sockets, el cual sera utilizado exclusivamente para informarle al servidor que me uni a la red o para conectarse a otro DataNode, esto se realiza para agregar en cada DataNode una lista de peers conocidos.
 
-3. La carpeta Cliente, el cliente se comunica para realizar cualquiera de las funcionalidades del sistema, subir un archivo, descargar un archivo o listar los archivos disponibles en el sistema. El usuario tambien inicializa los servicios MOM y gRPC, de igual manera para llamar tanto funciones en el sistema como recibir y enviar archivos.
+3. Carpeta Cliente, el cliente se comunica para realizar cualquiera de las funcionalidades del sistema, subir un archivo, descargar un archivo o listar los archivos disponibles en el sistema. El usuario tambien inicializa los servicios MOM y gRPC, de igual manera para llamar tanto funciones en el sistema como recibir y enviar archivos.
 
 
 Se definieron los siguientes puertos para el uso de cada uno de los middlewares:
@@ -72,10 +121,10 @@ Crear tres (la cantidad deseada) instancias de EC2 con OS Ubuntu 20.04, recomend
 En mi caso, la conexión a las instancias lo hago con la aplicación PuTTY, pueden usar cualquiera que deseen que les permita interactuar con la instancia. Vamos a ejecutar los siguientes comandos:
 
 ```ssh
-sudo apt-get update
-sudo apt-get upgrade
-sudo apt-get install python3
-sudo apt-get install python3-pip
+sudo apt update
+sudo apt install python3 -y
+sudo apt install python3-pip -y
+git clone https://github.com/Vera3588/proyectoTele1
 ```
 
 Una vez llegados a este punto, es necesario definir los roles de las instancias, me refiero a que es necesario establecer cual vamos a usar como Cliente, cual como Servidor y cual como DataNode. Una vez hecho esto, solo es pararnos en la carpeta correspondiente.
