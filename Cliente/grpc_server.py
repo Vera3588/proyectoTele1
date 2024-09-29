@@ -98,7 +98,7 @@ def get_file(name_file, ip):
     for filename in os.listdir('.'):
         if filename.startswith(name_file):
             os.remove(filename)
-
+    
     print("\nFile downloaded")
                 
 def save_block(body):
